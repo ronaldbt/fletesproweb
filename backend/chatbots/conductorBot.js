@@ -1,30 +1,48 @@
 // backend/chatbots/conductorBot.js
 
-const fs = require('fs');
-const path = require('path');
 const conductores = require('../data/conductores.json'); // Lista de conductores registrados
-const emailService = require('../services/emailService');
+const { enviarConfirmacionCliente } = require('../services/emailService');
 
-// Lista temporal de solicitudes activas
+// 🧠 Lista temporal de solicitudes activas
 const solicitudesPendientes = new Map();
 
+/**
+ * Enviar solicitud de flete a todos los conductores disponibles
+ * @param {Object} flete - Datos del flete (origen, destino, cliente, etc.)
+ * @param {Object} client - Cliente WhatsApp
+ */
 function enviarSolicitudAConductores(flete, client) {
-  const fleteId = `f${Date.now()}`; // ID único
+  if (!client || typeof client.sendMessage !== 'function') {
+    console.error('❌ Error: cliente WhatsApp no válido en enviarSolicitudAConductores');
+    return;
+  }
 
-  solicitudesPendientes.set(fleteId, {
-    ...flete,
-    asignado: false
-  });
+  const fleteId = flete.id || `f${Date.now()}`;
+  solicitudesPendientes.set(fleteId, { ...flete, asignado: false });
 
   const mensaje = `🚛 *Nueva solicitud de flete disponible*\n\n📍 Origen: ${flete.origen}\n📦 Destino: ${flete.destino}\n\nResponde con *Sí ${fleteId}* para aceptarlo.`;
 
   conductores.forEach(conductor => {
-    client.sendMessage(conductor.numero, mensaje);
+    if (conductor.numero) {
+      client.sendMessage(conductor.numero, mensaje)
+        .catch(err => console.error(`❌ Error al enviar mensaje a conductor ${conductor.numero}:`, err));
+    }
   });
+
+  console.log(`📤 Solicitud enviada a ${conductores.length} conductores. ID: ${fleteId}`);
 }
 
-// Escucha mensajes para ver si un conductor acepta el flete
+/**
+ * Maneja las respuestas entrantes de los conductores (ej: "Sí f123456")
+ * @param {Object} message - Mensaje recibido
+ * @param {Object} client - Cliente WhatsApp
+ */
 function manejarRespuestaConductor(message, client) {
+  if (!client || typeof client.sendMessage !== 'function') {
+    console.error('❌ Error: cliente WhatsApp no válido en manejarRespuestaConductor');
+    return;
+  }
+
   const texto = message.body.trim().toLowerCase();
   const partes = texto.split(' ');
 
@@ -36,18 +54,24 @@ function manejarRespuestaConductor(message, client) {
       flete.asignado = true;
       solicitudesPendientes.set(fleteId, flete);
 
-      // Notificar al conductor
-      client.sendMessage(message.from, `✅ Flete confirmado. Cliente: ${flete.numero}\n📍 Origen: ${flete.origen}\n📦 Destino: ${flete.destino}`);
+      // ✅ Confirmar al conductor
+      client.sendMessage(message.from, `✅ Flete confirmado.\n👤 Cliente: ${flete.nombre}\n📍 Origen: ${flete.origen}\n📦 Destino: ${flete.destino}`)
+        .catch(err => console.error('❌ Error al notificar conductor asignado:', err));
 
-      // Notificar al cliente por correo
-      emailService.enviarConfirmacionCliente(flete);
+      // 📬 Notificar al cliente por correo
+      if (flete.email) {
+        enviarConfirmacionCliente(flete);
+      }
 
-      // Avisar a otros conductores que ya fue tomado
+      // ❌ Avisar a los otros conductores
       conductores.forEach(conductor => {
         if (conductor.numero !== message.from) {
-          client.sendMessage(conductor.numero, `❌ El flete ${fleteId} ya fue tomado por otro conductor.`);
+          client.sendMessage(conductor.numero, `❌ El flete ${fleteId} ya fue tomado por otro conductor.`)
+            .catch(err => console.warn(`⚠️ No se pudo avisar a ${conductor.numero}:`, err));
         }
       });
+
+      console.log(`✅ Flete ${fleteId} aceptado por ${message.from}`);
     }
   }
 }

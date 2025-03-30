@@ -1,27 +1,26 @@
 // backend/index.js
 
-// Importaciones principales
+// 📦 Dependencias principales
 const express = require('express');
-const { Client, LocalAuth } = require('whatsapp-web.js');
-const qrcode = require('qrcode-terminal');
 const cors = require('cors');
-require('dotenv').config();
+const dotenv = require('dotenv');
+const qrcode = require('qrcode-terminal');
+const { Client, LocalAuth } = require('whatsapp-web.js');
 
-// Importaciones de bots
-const manejarMensajeCliente = require('./chatbots/clienteBot');
-const { manejarRespuestaConductor } = require('./chatbots/conductorBot');
+// 📄 Cargar variables de entorno
+dotenv.config();
 
-// Inicializar servidor Express
+// 🚀 Inicializar servidor Express
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Ruta de prueba
-app.get('/', (req, res) => {
-  res.send('🚀 Backend FletesPro funcionando en Express');
-});
+// 🧠 Importaciones internas
+const reservasRoutes = require('./routes/reservasRoutes');
+const manejarMensajeCliente = require('./chatbots/clienteBot');
+const { manejarRespuestaConductor } = require('./chatbots/conductorBot');
 
-// Inicializar WhatsApp Web con sesión persistente
+// 🤖 Inicializar cliente WhatsApp con sesión persistente
 const client = new Client({
   authStrategy: new LocalAuth(), // Guarda sesión en /.wwebjs_auth
   puppeteer: {
@@ -30,32 +29,43 @@ const client = new Client({
   }
 });
 
-// Mostrar QR en consola para vincular sesión
+// 🛡 Middleware para inyectar el cliente WhatsApp en cada request
+app.use((req, res, next) => {
+  req.whatsapp = client;
+  next();
+});
+
+// 🌐 Ruta base de prueba
+app.get('/', (req, res) => {
+  res.send('🚀 Backend FletesPro funcionando en Express');
+});
+
+// 📦 Rutas de la API
+app.use('/api', reservasRoutes);
+
+// 🔁 Conexión QR para iniciar sesión en WhatsApp
 client.on('qr', (qr) => {
-  console.log('📲 Escanea este QR con WhatsApp:');
+  console.log('📲 Escanea este QR con WhatsApp para vincular tu sesión:');
   qrcode.generate(qr, { small: true });
 });
 
-// Confirmar conexión
+// ✅ Confirmación de conexión
 client.on('ready', () => {
   console.log('✅ WhatsApp conectado y listo');
 });
 
-// Detectar mensajes entrantes
+// 📩 Escuchar mensajes entrantes de clientes y conductores
 client.on('message', async (message) => {
   if (!message.fromMe) {
-    // Manejar chatbot para clientes (origen/destino)
     manejarMensajeCliente(message, client);
-
-    // Manejar respuestas de conductores (Sí + ID)
     manejarRespuestaConductor(message, client);
   }
 });
 
-// Iniciar cliente WhatsApp
+// ▶️ Inicializar WhatsApp
 client.initialize();
 
-// Iniciar servidor Express
+// 🚀 Iniciar servidor Express
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
   console.log(`🌐 Servidor Express activo en http://localhost:${PORT}`);
