@@ -1,47 +1,50 @@
 <template>
-    <div class="flete-container">
-      <h1 class="title">Calculadora precio flete Región Metropolitana</h1>
-      <div ref="map" class="map"></div>
-  
-      <form @submit.prevent="calcularRuta" class="flete-form">
-        <label for="origen">Origen:</label>
-        <input id="origen" type="text" v-model="origen" />
-  
-        <label for="destino">Destino:</label>
-        <input id="destino" type="text" v-model="destino" />
-  
-        <div class="resultado" v-if="distancia && precio">
-          Distancia: {{ distancia.toFixed(2) }} km<br />
-          Precio: ${{ precio.toFixed(0) }} CLP
-        </div>
-  
-        <button type="submit">Mostrar Precio Flete</button>
-      </form>
-    </div>
-  </template>
-  
-  <script setup>
-  import { ref, onMounted } from 'vue'
-  
-  const origen = ref('')
-  const destino = ref('')
-  const distancia = ref(null)
-  const precio = ref(null)
-  const map = ref(null)
-  
-  let directionsService
-  let directionsRenderer
-  
-  onMounted(() => {
+  <div class="flete-container">
+    <h1 class="title">Calculadora precio flete Región Metropolitana</h1>
+    <div ref="map" class="map"></div>
+
+    <form @submit.prevent="calcularRuta" class="flete-form">
+      <label for="origen">Origen:</label>
+      <input id="origen" type="text" />
+
+      <label for="destino">Destino:</label>
+      <input id="destino" type="text" />
+
+      <div class="resultado" v-if="distancia && precio">
+        Dirección origen: {{ direccionOrigen }}<br />
+        Dirección destino: {{ direccionDestino }}<br />
+        Distancia: {{ distancia.toFixed(2) }} km<br />
+        Precio: ${{ precio.toFixed(0) }} CLP
+      </div>
+
+      <button type="submit">Mostrar Precio Flete</button>
+    </form>
+  </div>
+</template>
+
+<script setup>
+import { ref, onMounted } from 'vue'
+
+const distancia = ref(null)
+const precio = ref(null)
+const direccionOrigen = ref('')
+const direccionDestino = ref('')
+const map = ref(null)
+
+const origenPlace = ref(null)
+const destinoPlace = ref(null)
+
+let directionsService
+let directionsRenderer
+
+onMounted(() => {
   const apiKey = encodeURIComponent(import.meta.env.VITE_GOOGLE_MAPS_API_KEY)
 
-  // ✅ Si ya está cargado Google Maps (por alguna navegación en SPA)
   if (window.google && window.google.maps) {
     initMap()
     return
   }
 
-  // ✅ Evitar cargar el script dos veces si ya se insertó
   if (document.getElementById('google-maps-script')) {
     return
   }
@@ -52,69 +55,82 @@
   googleScript.async = true
   googleScript.defer = true
 
-  // ✅ Lógica cuando carga bien
   googleScript.onload = () => {
     console.log('✅ Google Maps API cargada correctamente')
     initMap()
   }
 
-  // ✅ Lógica si falla
   googleScript.onerror = () => {
-    console.error('❌ Error al cargar Google Maps API. Verifica tu API key, conexión o restricciones en Google Cloud Console.')
+    console.error('❌ Error al cargar Google Maps API.')
   }
 
   document.head.appendChild(googleScript)
 })
 
+function initMap() {
+  const chileBounds = new google.maps.LatLngBounds(
+    new google.maps.LatLng(-56.0, -75.0),
+    new google.maps.LatLng(-17.5, -66.0)
+  )
 
-  function initMap() {
-    const chileBounds = new google.maps.LatLngBounds(
-      new google.maps.LatLng(-56.0, -75.0),
-      new google.maps.LatLng(-17.5, -66.0)
-    )
-  
-    const mapInstance = new google.maps.Map(map.value, {
-      center: { lat: -33.45, lng: -70.645 },
-      zoom: 10
-    })
-  
-    directionsRenderer = new google.maps.DirectionsRenderer({ map: mapInstance })
-    directionsService = new google.maps.DirectionsService()
-  
-    new google.maps.places.Autocomplete(document.getElementById('origen'), {
-      bounds: chileBounds,
-      strictBounds: true
-    })
-    new google.maps.places.Autocomplete(document.getElementById('destino'), {
-      bounds: chileBounds,
-      strictBounds: true
-    })
+  const mapInstance = new google.maps.Map(map.value, {
+    center: { lat: -33.45, lng: -70.645 },
+    zoom: 10
+  })
+
+  directionsRenderer = new google.maps.DirectionsRenderer({ map: mapInstance })
+  directionsService = new google.maps.DirectionsService()
+
+  const inputOrigen = document.getElementById('origen')
+  const inputDestino = document.getElementById('destino')
+
+  const autocompleteOrigen = new google.maps.places.Autocomplete(inputOrigen, {
+    bounds: chileBounds,
+    strictBounds: true
+  })
+
+  const autocompleteDestino = new google.maps.places.Autocomplete(inputDestino, {
+    bounds: chileBounds,
+    strictBounds: true
+  })
+
+  autocompleteOrigen.addListener('place_changed', () => {
+    origenPlace.value = autocompleteOrigen.getPlace()
+  })
+
+  autocompleteDestino.addListener('place_changed', () => {
+    destinoPlace.value = autocompleteDestino.getPlace()
+  })
+}
+
+function calcularRuta() {
+  if (!origenPlace.value || !destinoPlace.value) {
+    alert('Por favor, selecciona direcciones válidas desde las sugerencias.')
+    return
   }
-  
-  function calcularRuta() {
-    if (!origen.value || !destino.value) {
-      alert('Por favor, complete ambos campos.')
-      return
-    }
-  
-    const request = {
-      origin: origen.value,
-      destination: destino.value,
-      travelMode: 'DRIVING'
-    }
-  
-    directionsService.route(request, (result, status) => {
-      if (status === 'OK') {
-        directionsRenderer.setDirections(result)
-        const distKm = result.routes[0].legs[0].distance.value / 1000
-        distancia.value = distKm
-        precio.value = 15000 + distKm * 1300
-      } else {
-        alert('No fue posible calcular la ruta.')
-      }
-    })
+
+  const request = {
+    origin: { placeId: origenPlace.value.place_id },
+    destination: { placeId: destinoPlace.value.place_id },
+    travelMode: 'DRIVING'
   }
-  </script>
+
+  directionsService.route(request, (result, status) => {
+    if (status === 'OK') {
+      directionsRenderer.setDirections(result)
+
+      const leg = result.routes[0].legs[0]
+      distancia.value = leg.distance.value / 1000
+      precio.value = 15000 + distancia.value * 1300
+      direccionOrigen.value = leg.start_address
+      direccionDestino.value = leg.end_address
+    } else {
+      alert('No fue posible calcular la ruta.')
+    }
+  })
+}
+</script>
+
   
   <style scoped>
   .flete-container {
