@@ -1,0 +1,7 @@
+# Forzar estilo LF para todos los archivos de texto
+* text=auto eol=lf
+
+# Ignorar cambios en el salto de línea para .env y sesiones
+*.env text eol=lf
+*.log text eol=lf
+*.json text eol=lf
