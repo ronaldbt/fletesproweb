@@ -6,6 +6,10 @@ const cors = require('cors');
 const dotenv = require('dotenv');
 const qrcode = require('qrcode-terminal');
 const { Client, LocalAuth } = require('whatsapp-web.js');
+const { esConductor } = require('./utils/identificarTipoUsuario');
+const authRoutes = require('./routes/authRoutes');
+
+
 
 // 📄 Cargar variables de entorno
 dotenv.config();
@@ -29,6 +33,10 @@ const client = new Client({
   }
 });
 
+const fletesRoutes = require('./routes/fletesRoutes') // ⬅️ importar
+app.use('/api/fletes', fletesRoutes) // ⬅️ usar la ruta
+
+
 // 🛡 Middleware para inyectar el cliente WhatsApp en cada request
 app.use((req, res, next) => {
   req.whatsapp = client;
@@ -42,6 +50,8 @@ app.get('/', (req, res) => {
 
 // 📦 Rutas de la API
 app.use('/api', reservasRoutes);
+app.use('/api', authRoutes);
+
 
 // 🔁 Conexión QR para iniciar sesión en WhatsApp
 client.on('qr', (qr) => {
@@ -56,11 +66,15 @@ client.on('ready', () => {
 
 // 📩 Escuchar mensajes entrantes de clientes y conductores
 client.on('message', async (message) => {
-  if (!message.fromMe) {
-    manejarMensajeCliente(message, client);
+  if (message.fromMe) return;
+
+  if (esConductor(message.from)) {
     manejarRespuestaConductor(message, client);
+  } else {
+    manejarMensajeCliente(message, client);
   }
 });
+
 
 // ▶️ Inicializar WhatsApp
 client.initialize();

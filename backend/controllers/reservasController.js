@@ -8,10 +8,10 @@ const { crearSolicitud } = require('../models/solicitudModel'); // ✅ importamo
 
 const crearReserva = async (req, res) => {
   const client = req.whatsapp; // ✅ cliente WhatsApp desde middleware
-  const { nombre, telefono, email, origen, destino, precio } = req.body;
+  const { nombre, telefono, email, origen, destino, precio, carga, ayudante } = req.body;
 
   // 🔒 Validaciones básicas
-  if (!nombre || !telefono || !origen || !destino || !precio) {
+  if (!nombre || !telefono || !origen || !destino || !precio || !carga || ayudante === undefined) {
     console.warn('⚠️ Solicitud incompleta recibida:', req.body);
     return res.status(400).json({ error: 'Faltan datos obligatorios en la reserva.' });
   }
@@ -29,7 +29,7 @@ const crearReserva = async (req, res) => {
   }
 
   // 🧠 Crear objeto completo desde el modelo
-  const nuevaSolicitud = crearSolicitud({ nombre, telefono, email, origen, destino, precio });
+  const nuevaSolicitud = crearSolicitud({ nombre, telefono, email, origen, destino, precio, carga, ayudante });
 
   try {
     console.log('📦 Procesando nueva reserva:', nuevaSolicitud);
@@ -45,19 +45,22 @@ const crearReserva = async (req, res) => {
     }
 
     // 💾 Guardar en MySQL
-    const sql = `INSERT INTO reservas (id, nombre, telefono, email, origen, destino, precio, fecha)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
+    const sql = `INSERT INTO reservas (id, nombre, telefono, email, origen, destino, precio, carga, ayudante, fecha)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
 
-    const values = [
-      nuevaSolicitud.id,
-      nuevaSolicitud.nombre,
-      nuevaSolicitud.telefono,
-      nuevaSolicitud.email,
-      nuevaSolicitud.origen,
-      nuevaSolicitud.destino,
-      nuevaSolicitud.precio,
-      nuevaSolicitud.fecha
-    ];
+   const values = [
+              nuevaSolicitud.id,
+              nuevaSolicitud.nombre,
+              nuevaSolicitud.telefono,
+              nuevaSolicitud.email,
+              nuevaSolicitud.origen,
+              nuevaSolicitud.destino,
+              nuevaSolicitud.precio,
+              nuevaSolicitud.carga,
+              nuevaSolicitud.ayudante,
+              nuevaSolicitud.fecha
+            ];
+            
 
     await db.execute(sql, values);
     console.log('💾 Reserva guardada en MySQL.');

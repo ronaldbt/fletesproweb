@@ -1,5 +1,8 @@
 // backend/chatbots/conductorBot.js
 
+const db = require('../utils/db');
+
+
 const fs = require('fs');
 const path = require('path');
 const { enviarConfirmacionCliente } = require('../services/emailService');
@@ -31,10 +34,23 @@ async function enviarSolicitudAConductores(flete, client) {
     return;
   }
 
-  const fleteId = flete.id || `f${Date.now()}`;
+  const fleteId = flete.id;
   solicitudesPendientes.set(fleteId, { ...flete, asignado: false });
 
-  const mensaje = `🚛 *Nueva solicitud de flete disponible*\n\n📍 Origen: ${flete.origen}\n📦 Destino: ${flete.destino}\n\nResponde con *Sí ${fleteId}* para aceptarlo.`;
+  const pagoConductor = Math.round(Number(flete.precio || 0) * 0.9);
+  const mensaje = `🚛 *Nueva solicitud de flete disponible*
+
+🆔 ID del flete: ${fleteId}
+📍 Origen: ${flete.origen}
+📦 Destino: ${flete.destino}
+📦 Carga: ${flete.carga}
+👥 Ayudante: ${flete.ayudante ? 'Sí (+$10.000)' : 'No'}
+💰 Pago: $${pagoConductor.toLocaleString()} CLP
+
+✅ Responde con *Sí* para aceptarlo
+❌ Responde con *No* para rechazarlo.`;
+
+
 
   for (const conductor of conductores) {
     try {
@@ -57,25 +73,62 @@ async function enviarSolicitudAConductores(flete, client) {
  * @param {Object} message - Mensaje recibido
  * @param {Object} client - Cliente WhatsApp
  */
-function manejarRespuestaConductor(message, client) {
+async function manejarRespuestaConductor(message, client) {
   if (!client || typeof client.sendMessage !== 'function') {
     console.error('❌ Error: cliente WhatsApp no válido en manejarRespuestaConductor');
     return;
   }
 
   const texto = message.body.trim().toLowerCase();
+  if (texto === 'no') {
+    return client.sendMessage(message.from, '❌ Has rechazado el flete. Gracias por responder.');
+  }
+  
   const partes = texto.split(' ');
 
-  if (partes.length === 2 && partes[0] === 'sí') {
-    const fleteId = partes[1];
+  if ((partes.length === 2 && partes[0] === 'si') || (partes.length === 1 && partes[0] === 'si')) {
+    let fleteId = partes[1];
+  
+    // Si no viene el ID, buscar el flete asignado a este número
+    if (!fleteId) {
+      for (const [id, fleteData] of solicitudesPendientes.entries()) {
+        if (!fleteData.asignado && fleteData && typeof fleteData === 'object') {
+          fleteId = id;
+          break;
+        }
+      }
+    }
+  
     const flete = solicitudesPendientes.get(fleteId);
+  
 
     if (flete && !flete.asignado) {
       flete.asignado = true;
       solicitudesPendientes.set(fleteId, flete);
 
+      try {
+        await db.execute(
+          'UPDATE reservas SET conductor_asignado = ? WHERE id = ?',
+          [message.from, fleteId]
+        );
+        console.log(`📝 Conductor ${message.from} asignado en base de datos.`);
+      } catch (err) {
+        console.error('❌ Error al guardar conductor en MySQL:', err);
+      }
+      
+
       // ✅ Confirmar al conductor
-      client.sendMessage(message.from, `✅ Flete confirmado.\n👤 Cliente: ${flete.nombre}\n📍 Origen: ${flete.origen}\n📦 Destino: ${flete.destino}`)
+      client.sendMessage(message.from, `✅ *Flete asignado a ti*
+
+        🆔 ID: ${fleteId}
+        👤 Cliente: ${flete.nombre}
+        📞 Teléfono: ${flete.telefono}
+        📍 Origen: ${flete.origen}
+        📦 Destino: ${flete.destino}
+        📦 Carga: ${flete.carga}
+        👥 Ayudante: ${flete.ayudante ? 'Sí' : 'No'}
+        💰 Tu pago: $${Math.round(Number(flete.precio || 0) * 0.9).toLocaleString()} CLP`)
+        
         .catch(err => console.error('❌ Error al notificar conductor asignado:', err));
 
       // 📬 Notificar al cliente por correo
@@ -86,7 +139,7 @@ function manejarRespuestaConductor(message, client) {
       // ❌ Avisar a otros conductores
       conductores.forEach(conductor => {
         if (conductor.numero !== message.from) {
-          client.sendMessage(conductor.numero, `❌ El flete ${fleteId} ya fue tomado por otro conductor.`)
+          client.sendMessage(conductor.numero, `❌ El flete *${fleteId}* ya fue asignado a otro conductor.`)
             .catch(err => console.warn(`⚠️ No se pudo avisar a ${conductor.numero}:`, err));
         }
       });

@@ -1,6 +1,6 @@
 // backend/models/solicitudModel.js
 
-function crearSolicitud({ nombre, telefono, email, origen, destino, precio }) {
+function crearSolicitud({ nombre, telefono, email, origen, destino, precio, carga, ayudante }) {
   // Generamos un ID único legible con prefijo 'F' y 6 dígitos aleatorios
   const id = 'F' + Math.floor(100000 + Math.random() * 900000);
 
@@ -13,9 +13,11 @@ function crearSolicitud({ nombre, telefono, email, origen, destino, precio }) {
     origen,
     destino,
     precio,
-    fecha: new Date().toISOString().slice(0, 19).replace('T', ' '), // formato DATETIME MySQL
-    asignado: false // será útil más adelante para saber si el flete fue tomado
-  };
+    carga,
+    ayudante,
+    fecha: new Date().toISOString().slice(0, 19).replace('T', ' '),
+    asignado: false
+  };  
 }
 
 module.exports = { crearSolicitud };

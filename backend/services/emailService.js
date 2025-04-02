@@ -16,7 +16,17 @@ async function enviarConfirmacionCliente(flete) {
     from: `"FletesPro" <${process.env.EMAIL_USER}>`,
     to: correoDestino,
     subject: 'Tu flete está en camino',
-    text: `Hola 👋\n\nTu solicitud de flete fue confirmada.\n\n📍 Origen: ${flete.origen}\n📦 Destino: ${flete.destino}\n\nUn conductor ya está en camino. ¡Gracias por usar FletesPro!`
+    text: `Hola 👋
+
+Tu solicitud de flete fue confirmada.
+
+📍 Origen: ${flete.origen}
+📦 Destino: ${flete.destino}
+📦 Carga: ${flete.carga}
+👥 Ayudante: ${flete.ayudante ? 'Sí (+$10.000)' : 'No'}
+
+Un conductor ya está en camino. ¡Gracias por usar FletesPro!`
+
   };
 
   try {
