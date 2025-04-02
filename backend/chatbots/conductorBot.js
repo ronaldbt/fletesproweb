@@ -1,7 +1,21 @@
 // backend/chatbots/conductorBot.js
 
-const conductores = require('../data/conductores.json'); // Lista de conductores registrados
+const fs = require('fs');
+const path = require('path');
 const { enviarConfirmacionCliente } = require('../services/emailService');
+
+// ✅ Leer y limpiar conductores
+const rawData = fs.readFileSync(path.join(__dirname, '../data/conductores.json'));
+let conductores = JSON.parse(rawData);
+
+// 🧠 Asegurar que todos los números estén en formato correcto
+conductores = conductores.map(c => {
+  let numero = c.numero.toString().replace(/\s+/g, '');
+  if (!numero.endsWith('@c.us')) {
+    numero += '@c.us';
+  }
+  return { ...c, numero };
+});
 
 // 🧠 Lista temporal de solicitudes activas
 const solicitudesPendientes = new Map();
@@ -11,7 +25,7 @@ const solicitudesPendientes = new Map();
  * @param {Object} flete - Datos del flete (origen, destino, cliente, etc.)
  * @param {Object} client - Cliente WhatsApp
  */
-function enviarSolicitudAConductores(flete, client) {
+async function enviarSolicitudAConductores(flete, client) {
   if (!client || typeof client.sendMessage !== 'function') {
     console.error('❌ Error: cliente WhatsApp no válido en enviarSolicitudAConductores');
     return;
@@ -22,12 +36,18 @@ function enviarSolicitudAConductores(flete, client) {
 
   const mensaje = `🚛 *Nueva solicitud de flete disponible*\n\n📍 Origen: ${flete.origen}\n📦 Destino: ${flete.destino}\n\nResponde con *Sí ${fleteId}* para aceptarlo.`;
 
-  conductores.forEach(conductor => {
-    if (conductor.numero) {
-      client.sendMessage(conductor.numero, mensaje)
-        .catch(err => console.error(`❌ Error al enviar mensaje a conductor ${conductor.numero}:`, err));
+  for (const conductor of conductores) {
+    try {
+      const isRegistered = await client.isRegisteredUser(conductor.numero);
+      if (isRegistered) {
+        await client.sendMessage(conductor.numero, mensaje);
+      } else {
+        console.warn(`⚠️ El número ${conductor.numero} no está registrado en WhatsApp.`);
+      }
+    } catch (err) {
+      console.error(`❌ Error al enviar mensaje a ${conductor.numero}:`, err);
     }
-  });
+  }
 
   console.log(`📤 Solicitud enviada a ${conductores.length} conductores. ID: ${fleteId}`);
 }
@@ -63,7 +83,7 @@ function manejarRespuestaConductor(message, client) {
         enviarConfirmacionCliente(flete);
       }
 
-      // ❌ Avisar a los otros conductores
+      // ❌ Avisar a otros conductores
       conductores.forEach(conductor => {
         if (conductor.numero !== message.from) {
           client.sendMessage(conductor.numero, `❌ El flete ${fleteId} ya fue tomado por otro conductor.`)

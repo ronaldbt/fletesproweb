@@ -1,10 +1,8 @@
 <template>
   <div class="text-center mt-16 px-4">
     <div class="inline-block mb-6">
-      <svg class="w-16 h-16 text-green-600 mx-auto" fill="none" stroke="currentColor" stroke-width="2"
-        viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round"
-          d="M9 12l2 2 4-4m-7 8a9 9 0 1118 0 9 9 0 01-18 0z" />
+      <svg class="w-16 h-16 text-green-600 mx-auto" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m-7 8a9 9 0 1118 0 9 9 0 01-18 0z" />
       </svg>
     </div>
 
@@ -57,21 +55,16 @@ onMounted(() => {
   nombre.value = localStorage.getItem('flete_nombre') || 'cliente'
   destino.value = localStorage.getItem('flete_destino') || 'tu destino'
   email.value = localStorage.getItem('flete_email') || ''
-  idSeguimiento.value = localStorage.getItem('flete_id') || generarID()
+  idSeguimiento.value = localStorage.getItem('flete_id') || 'No disponible'
 
-  // Generar link para compartir por WhatsApp
+  // Crear mensaje para compartir
   const mensaje = `🚛 Hola, he solicitado un flete en FletesPro\n\n🧾 ID: #${idSeguimiento.value}\n📍 Hacia: ${destino.value}`
   whatsappLink.value = `https://wa.me/?text=${encodeURIComponent(mensaje)}`
 
-  // Limpiar localStorage
+  // Limpiar después de cargar
   localStorage.removeItem('flete_nombre')
   localStorage.removeItem('flete_destino')
   localStorage.removeItem('flete_email')
   localStorage.removeItem('flete_id')
 })
-
-function generarID() {
-  const id = 'F' + Math.floor(Math.random() * 900000 + 100000)
-  return id
-}
 </script>

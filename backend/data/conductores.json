@@ -1,11 +1,5 @@
 [
-    {
-      "nombre": "Ramon",
-      "numero": "56998748154"
-    },
-    {
-      "nombre": "María",
-      "numero": "56993821438"
-    }
-  ]
-  
+  { "nombre": "Ramon", "numero": "56998748154@c.us" },
+  { "nombre": "María", "numero": "56993821438@c.us" },
+  { "nombre": "Ronald Bravo", "numero": "56979796841@c.us" }
+]

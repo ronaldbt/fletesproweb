@@ -31,3 +31,6 @@ Thumbs.db
 
 # Cobertura de tests (si los agregas luego)
 coverage/
+
+# Ignorar sesiones y caché de whatsapp-web.js
+backend/.wwebjs_auth/

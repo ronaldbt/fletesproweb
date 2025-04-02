@@ -237,6 +237,12 @@ async function enviarReserva() {
     const data = await res.json()
     console.log('✅ Reserva enviada:', data)
 
+    // Guardar en localStorage para mostrar en GraciasView.vue
+    localStorage.setItem('flete_nombre', nombre.value)
+    localStorage.setItem('flete_destino', direccionDestino.value)
+    localStorage.setItem('flete_email', email.value)
+    localStorage.setItem('flete_id', data.fleteId)
+
     // Redirigir a GraciasView.vue
     router.push('/gracias')
   } catch (error) {
