@@ -34,3 +34,4 @@ coverage/
 
 # Ignorar sesiones y caché de whatsapp-web.js
 backend/.wwebjs_auth/
+backend/.wwebjs_cache/
