@@ -26,7 +26,7 @@
   function enviarReserva() {
     // Aquí iría la lógica para enviar al backend (POST)
     console.log({ nombre: nombre.value, telefono: telefono.value, origen: origen.value, destino: destino.value })
-  
+
     // Simulación: ir a la vista de gracias
     router.push('/gracias')
   }

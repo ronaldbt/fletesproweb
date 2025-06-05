@@ -146,11 +146,14 @@ const map = ref(null)
 const origenPlace = ref(null)
 const destinoPlace = ref(null)
 
+const backendURL = import.meta.env.VITE_BACKEND_URL
+
 let directionsService
 let directionsRenderer
 
 onMounted(() => {
   const apiKey = encodeURIComponent(import.meta.env.VITE_GOOGLE_MAPS_API_KEY)
+
 
   if (window.google && window.google.maps) {
     initMap()
@@ -272,25 +275,32 @@ async function enviarReserva() {
   }
 
   try {
-    const res = await fetch('http://localhost:3001/api/reservar', {
+    const res = await fetch(backendURL+'/api/reservar', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body)
     })
 
-    const data = await res.json()
-    console.log('✅ Reserva enviada:', data)
+    const data = await res.json();
+    console.log('✅ Reserva enviada:', data);
 
-    // Guardar datos en localStorage para GraciasView.vue
-    localStorage.setItem('flete_nombre', nombre.value)
-    localStorage.setItem('flete_destino', direccionDestino.value)
-    localStorage.setItem('flete_email', email.value)
-    localStorage.setItem('flete_id', data.fleteId)
-    localStorage.setItem('flete_carga', carga.value)
-    localStorage.setItem('flete_ayudante', ayudante.value)
+    if (data.url) {
+      // Guardar data en localStorage si aún lo querés
+      localStorage.setItem('flete_nombre', nombre.value);
+      localStorage.setItem('flete_destino', direccionDestino.value);
+      localStorage.setItem('flete_email', email.value);
+      localStorage.setItem('flete_id', data.fleteId);
+      localStorage.setItem('flete_carga', carga.value);
+      localStorage.setItem('flete_ayudante', ayudante.value);
+
+      window.open(data.url, '_blank');
+    } else {
+      throw new Error('No se recibió la URL de pago.');
+    }
+
 
     // 🔁 Redirigir al resumen de confirmación
-    router.push('/gracias')
+    //router.push('/gracias')
   } catch (error) {
     console.error('❌ Error al enviar reserva:', error)
     alert('Hubo un error al procesar tu solicitud.')

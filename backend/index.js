@@ -21,6 +21,7 @@ app.use(express.json());
 
 // 🧠 Importaciones internas
 const reservasRoutes = require('./routes/reservasRoutes');
+const paymentsRoutes = require('./routes/paymentsRoutes');
 const manejarMensajeCliente = require('./chatbots/clienteBot');
 const { manejarRespuestaConductor } = require('./chatbots/conductorBot');
 
@@ -35,7 +36,7 @@ const client = new Client({
 
 const fletesRoutes = require('./routes/fletesRoutes') // ⬅️ importar
 app.use('/api/fletes', fletesRoutes) // ⬅️ usar la ruta
-
+app.use('/api/payments', paymentsRoutes)
 
 // 🛡 Middleware para inyectar el cliente WhatsApp en cada request
 app.use((req, res, next) => {
