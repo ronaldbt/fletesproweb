@@ -21,7 +21,7 @@ const mpapi = {
                         title: 'Envio Fletes PRO ' + id,
                         quantity: 1,
                         unit_price: precio,
-                        currency_id: 'UYU',
+                        currency_id: 'CLP',
                     }
                 ],
                 auto_return: "approved",
