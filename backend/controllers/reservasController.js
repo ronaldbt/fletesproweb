@@ -34,7 +34,7 @@ const crearReserva = async (req, res) => {
 
         const solicitudId = await guardarSolicitud(nuevaSolicitud);
 
-        await mpapi.nuevo(solicitudId, Number(precio)).then((mercadoResponse) => {
+        await mpapi.nuevo(solicitudId, parseInt(precio)).then((mercadoResponse) => {
             console.log(mercadoResponse.init_point)
             return res.status(200).json({
                 mensaje: 'Solicitud enviada y registrada correctamente.',
