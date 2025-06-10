@@ -1,9 +1,9 @@
 // backend/index.js
-
+require('dotenv').config();
 // 📦 Dependencias principales
 const express = require('express');
 const cors = require('cors');
-const dotenv = require('dotenv');
+
 const qrcode = require('qrcode-terminal');
 const { Client, LocalAuth } = require('whatsapp-web.js');
 const { esConductor } = require('./utils/identificarTipoUsuario');
@@ -12,7 +12,6 @@ const authRoutes = require('./routes/authRoutes');
 
 
 // 📄 Cargar variables de entorno
-dotenv.config();
 
 // 🚀 Inicializar servidor Express
 const app = express();
