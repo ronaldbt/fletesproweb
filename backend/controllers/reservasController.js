@@ -26,10 +26,10 @@ const crearReserva = async (req, res) => {
     const nuevaSolicitud = crearSolicitud({nombre, telefono, email, origen, destino, precio, carga, ayudante});
 
     try {
-        enviarSolicitudAConductores(nuevaSolicitud, client);
+        //enviarSolicitudAConductores(nuevaSolicitud, client);
 
         if (email) {
-            await enviarConfirmacionCliente(nuevaSolicitud);
+            //await enviarConfirmacionCliente(nuevaSolicitud);
         }
 
         const solicitudId = await guardarSolicitud(nuevaSolicitud);
