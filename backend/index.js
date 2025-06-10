@@ -15,7 +15,14 @@ const authRoutes = require('./routes/authRoutes');
 
 // 🚀 Inicializar servidor Express
 const app = express();
-app.use(cors());
+app.use(cors({
+  origin: 'https://app.fletespro.cl', // ✅ solo tu frontend puede acceder
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true // ✅ si usás cookies o auth headers
+}));
+
+app.options('*', cors()); // 🟢 responde a preflight OPTIONS
 app.use(express.json());
 
 // 🧠 Importaciones internas
